@@ -59,7 +59,6 @@ export default async function ConditionsPage() {
               </div>
               <div className="text-sm text-gray-500 mt-1">
                 <p>Code: {conditions[0].code}</p>
-                <p>System: {conditions[0].system}</p>
               </div>
             </div>
           ))}

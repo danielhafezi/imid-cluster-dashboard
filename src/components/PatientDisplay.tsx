@@ -2,6 +2,17 @@
 
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
+import {
+  Table, 
+  TableHeader,
+  TableBody,
+  TableRow,
+  TableHead,
+  TableCell
+} from "./ui/table";
+import { Button } from "./ui/button";
+import { Card, CardHeader, CardTitle, CardContent } from "./ui/card";
+import { Skeleton } from "./ui/skeleton";
 
 interface Patient {
   id: string;
@@ -46,66 +57,95 @@ export default function PatientDisplay() {
   }, []);
 
   if (loading) {
-    return <div className="text-center py-10">Loading patient data...</div>;
+    return (
+      <div className="w-full space-y-4">
+        <Card>
+          <CardHeader>
+            <CardTitle>Patient Listing</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="space-y-2">
+              <Skeleton className="h-6 w-full" />
+              <Skeleton className="h-6 w-full" />
+              <Skeleton className="h-6 w-full" />
+              <Skeleton className="h-6 w-full" />
+              <Skeleton className="h-6 w-full" />
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+    );
   }
 
   if (error) {
-    return <div className="text-center py-10 text-red-600">Error: {error}</div>;
+    return (
+      <Card className="w-full border-destructive">
+        <CardHeader>
+          <CardTitle className="text-destructive">Error</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <p>{error}</p>
+          <Button 
+            variant="outline" 
+            className="mt-4" 
+            onClick={() => window.location.reload()}
+          >
+            Retry
+          </Button>
+        </CardContent>
+      </Card>
+    );
   }
 
   return (
     <div className="w-full">
-      <h2 className="text-2xl font-bold text-primary-700 mb-4">Patient Listing</h2>
-      
-      <div className="bg-white shadow-md rounded-lg overflow-hidden">
-        <table className="min-w-full divide-y divide-gray-200">
-          <thead className="bg-gray-50">
-            <tr>
-              <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                ID
-              </th>
-              <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                Name
-              </th>
-              <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                Birthdate
-              </th>
-              <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                Gender
-              </th>
-              <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                Actions
-              </th>
-            </tr>
-          </thead>
-          <tbody className="bg-white divide-y divide-gray-200">
-            {patients.map((patient) => (
-              <tr key={patient.id}>
-                <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
-                  {patient.id.substring(0, 8)}...
-                </td>
-                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                  {cleanName(patient.first)} {cleanName(patient.last)}
-                </td>
-                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                  {new Date(patient.birthdate).toLocaleDateString()}
-                </td>
-                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                  {patient.gender}
-                </td>
-                <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
-                  <Link 
-                    href={`/patients/${patient.id}`}
-                    className="text-primary-600 hover:text-primary-900"
-                  >
-                    View Details
-                  </Link>
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      </div>
+      <Card>
+        <CardHeader>
+          <CardTitle>Patient Listing</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead>ID</TableHead>
+                <TableHead>Name</TableHead>
+                <TableHead>Birthdate</TableHead>
+                <TableHead>Gender</TableHead>
+                <TableHead>Actions</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {patients.map((patient) => (
+                <TableRow key={patient.id}>
+                  <TableCell className="font-medium">
+                    {patient.id.substring(0, 8)}...
+                  </TableCell>
+                  <TableCell>
+                    {cleanName(patient.first)} {cleanName(patient.last)}
+                  </TableCell>
+                  <TableCell>
+                    {new Date(patient.birthdate).toLocaleDateString()}
+                  </TableCell>
+                  <TableCell>
+                    {patient.gender}
+                  </TableCell>
+                  <TableCell>
+                    <Button 
+                      variant="ghost" 
+                      size="sm" 
+                      asChild
+                    >
+                      <Link href={`/patients/${patient.id}`}>
+                        View Details
+                      </Link>
+                    </Button>
+                  </TableCell>
+                </TableRow>
+              ))}
+            </TableBody>
+          </Table>
+        </CardContent>
+      </Card>
     </div>
   );
 } 
