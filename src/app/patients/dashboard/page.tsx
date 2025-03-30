@@ -14,6 +14,7 @@ interface PatientData {
   last: string;
   birthdate: string;
   clusterId: number | null;
+  dbscanClusterId: number | null;
   _count: {
     conditions: number;
     medications: number;
@@ -31,6 +32,7 @@ export default function PatientDashboardPage() {
   const [summary, setSummary] = useState<string | null>(null);
   const [isLoadingSummary, setIsLoadingSummary] = useState(false);
   const [summaryError, setSummaryError] = useState<string | null>(null);
+  const [clusterType, setClusterType] = useState<'kmeans' | 'dbscan'>('kmeans');
 
   // Fetch initial patient data for the plot
   useEffect(() => {
@@ -75,7 +77,10 @@ export default function PatientDashboardPage() {
           headers: {
             'Content-Type': 'application/json',
           },
-          body: JSON.stringify({ clusterId: selectedClusterId }),
+          body: JSON.stringify({ 
+            clusterId: selectedClusterId,
+            clusterType: clusterType 
+          }),
         });
 
         if (!response.ok) {
@@ -96,17 +101,27 @@ export default function PatientDashboardPage() {
     }
 
     fetchSummary();
-  }, [selectedClusterId]); // Re-run when selectedClusterId changes
+  }, [selectedClusterId, clusterType]); // Re-run when selectedClusterId or clusterType changes
 
   // Handle cluster selection from the scatter plot
   const handleClusterSelect = (clusterId: number | null) => {
     setSelectedClusterId(clusterId);
   };
 
-  // Get the distribution of clusters
+  // Handle clustering method change
+  const handleClusterTypeChange = (type: 'kmeans' | 'dbscan') => {
+    setClusterType(type);
+    setSelectedClusterId(null); // Reset selection when changing clustering method
+  };
+
+  // Get the distribution of clusters based on selected clustering method
   const clusterCounts = patientData.reduce((acc, patient) => {
-    if (patient.clusterId !== null) {
-      acc[patient.clusterId] = (acc[patient.clusterId] || 0) + 1;
+    const clusterId = clusterType === 'dbscan' 
+      ? patient.dbscanClusterId 
+      : patient.clusterId;
+      
+    if (clusterId !== null) {
+      acc[clusterId] = (acc[clusterId] || 0) + 1;
     }
     return acc;
   }, {} as Record<number, number>);
@@ -128,6 +143,37 @@ export default function PatientDashboardPage() {
           >
             Back to Home
           </Link>
+        </div>
+
+        {/* Clustering Method Selection */}
+        <div className="mb-4">
+          <div className="flex items-center justify-start space-x-2">
+            <span className="text-sm font-medium text-gray-700">Clustering Method:</span>
+            <div className="flex rounded-md shadow-sm" role="group">
+              <button
+                type="button"
+                onClick={() => handleClusterTypeChange('kmeans')}
+                className={`px-4 py-2 text-sm font-medium rounded-l-md ${
+                  clusterType === 'kmeans'
+                    ? 'bg-primary-600 text-white'
+                    : 'bg-white text-gray-700 border border-gray-300 hover:bg-gray-50'
+                }`}
+              >
+                K-Means
+              </button>
+              <button
+                type="button"
+                onClick={() => handleClusterTypeChange('dbscan')}
+                className={`px-4 py-2 text-sm font-medium rounded-r-md ${
+                  clusterType === 'dbscan'
+                    ? 'bg-primary-600 text-white'
+                    : 'bg-white text-gray-700 border border-gray-300 hover:bg-gray-50'
+                }`}
+              >
+                DBSCAN
+              </button>
+            </div>
+          </div>
         </div>
 
         {/* Status indicators */}
@@ -202,6 +248,7 @@ export default function PatientDashboardPage() {
                 <ClusterScatterPlot
                   data={patientData}
                   onClusterSelect={handleClusterSelect}
+                  clusterType={clusterType}
                 />
               </div>
             ) : (
@@ -218,6 +265,7 @@ export default function PatientDashboardPage() {
               <li>Click on a cluster in the legend to view its AI-generated summary</li>
               <li>Hover over points to see patient details</li>
               <li>Each color represents a different patient cluster</li>
+              <li>Switch between K-Means and DBSCAN clustering methods using the toggle above</li>
             </ul>
           </div>
         </div>
@@ -229,13 +277,14 @@ export default function PatientDashboardPage() {
             summary={summary}
             isLoading={isLoadingSummary}
             error={summaryError}
+            clusterType={clusterType}
           />
 
           {/* Cluster details */}
           {selectedClusterId !== null && !isLoadingData && (
             <div className="mt-6 p-4 border border-gray-200 rounded-lg shadow-sm bg-white">
               <h3 className="text-lg font-semibold mb-2 text-primary-600">
-                Cluster {selectedClusterId} Details
+                {clusterType === 'kmeans' ? 'K-Means' : 'DBSCAN'} Cluster {selectedClusterId} Details
               </h3>
               <ul className="divide-y divide-gray-200">
                 <li className="py-2 flex justify-between">

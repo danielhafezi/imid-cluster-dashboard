@@ -12,6 +12,7 @@ interface ClusterSummaryProps {
   isLoading: boolean;
   error: string | null;
   selectedClusterId: number | null;
+  clusterType: 'kmeans' | 'dbscan';
 }
 
 const ClusterSummary: React.FC<ClusterSummaryProps> = ({
@@ -19,7 +20,10 @@ const ClusterSummary: React.FC<ClusterSummaryProps> = ({
   isLoading,
   error,
   selectedClusterId,
+  clusterType,
 }) => {
+  const clusterTypeLabel = clusterType === 'kmeans' ? 'K-Means' : 'DBSCAN';
+  
   return (
     <Card>
       <CardHeader className="pb-3">
@@ -50,7 +54,7 @@ const ClusterSummary: React.FC<ClusterSummaryProps> = ({
               <Skeleton className="h-3 w-5/6" />
               <Skeleton className="h-3 w-4/6" />
             </div>
-            <p className="text-sm text-muted-foreground">Analyzing Cluster {selectedClusterId}...</p>
+            <p className="text-sm text-muted-foreground">Analyzing {clusterTypeLabel} Cluster {selectedClusterId}...</p>
           </div>
         )}
 
@@ -79,7 +83,7 @@ const ClusterSummary: React.FC<ClusterSummaryProps> = ({
         {!isLoading && !error && summary && (
           <div>
             <div className="text-sm mb-2">
-              <span className="font-medium">Cluster {selectedClusterId}</span> • 
+              <span className="font-medium">{clusterTypeLabel} Cluster {selectedClusterId}</span> • 
               <span className="text-muted-foreground ml-1">AI analysis</span>
             </div>
             <div className="prose prose-sm max-w-none text-foreground bg-muted/30 p-4 rounded-md border">

@@ -5,7 +5,6 @@ export async function GET() {
   try {
     // Fetch patients with their basic info for the directory
     const patients = await prisma.patient.findMany({
-      take: 100, // Limit to 100 patients for performance
       orderBy: {
         id: 'asc'
       },
@@ -16,6 +15,7 @@ export async function GET() {
         birthdate: true,
         gender: true,
         clusterId: true,
+        dbscanClusterId: true,
         _count: {
           select: {
             conditions: true,

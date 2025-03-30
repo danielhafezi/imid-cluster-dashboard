@@ -21,6 +21,7 @@ interface PatientData {
   last: string;
   birthdate: string; // Assuming ISO string format
   clusterId: number | null;
+  dbscanClusterId: number | null;
   _count: {
     conditions: number;
     medications: number;
@@ -30,6 +31,7 @@ interface PatientData {
 interface ClusterScatterPlotProps {
   data: PatientData[];
   onClusterSelect: (clusterId: number | null) => void; // Add callback prop
+  clusterType: 'kmeans' | 'dbscan';
 }
 
 // Function to calculate age from birthdate string
@@ -60,7 +62,7 @@ const clusterColors: { [key: number]: string } = {
 };
 const defaultColor = '#94A3B8'; // Slate-400 for patients with null clusterId
 
-const ClusterScatterPlot: React.FC<ClusterScatterPlotProps> = ({ data, onClusterSelect }) => {
+const ClusterScatterPlot: React.FC<ClusterScatterPlotProps> = ({ data, onClusterSelect, clusterType }) => {
   const [activeCluster, setActiveCluster] = useState<number | null>(null);
   
   // Function to remove numbers from names
@@ -69,26 +71,36 @@ const ClusterScatterPlot: React.FC<ClusterScatterPlotProps> = ({ data, onCluster
     return name.replace(/\d+/g, '');
   };
   
+  // Function to get cluster ID based on current cluster type
+  const getClusterId = (patient: PatientData): number | null => {
+    return clusterType === 'dbscan' ? patient.dbscanClusterId : patient.clusterId;
+  };
+  
   // Transform data for the chart
   const chartData = data
-    .map((patient) => ({
-      ...patient,
-      age: calculateAge(patient.birthdate),
-      conditionsCount: patient._count.conditions,
-      color: patient.clusterId !== null ? clusterColors[patient.clusterId] : defaultColor,
-      // Add opacity based on active cluster
-      opacity: activeCluster === null || activeCluster === patient.clusterId ? 1 : 0.3,
-    }))
-    .filter(patient => patient.clusterId !== null); // Filter out unclustered patients
+    .map((patient) => {
+      const clusterId = getClusterId(patient);
+      return {
+        ...patient,
+        age: calculateAge(patient.birthdate),
+        conditionsCount: patient._count.conditions,
+        color: clusterId !== null ? clusterColors[clusterId] : defaultColor,
+        // Add opacity based on active cluster
+        opacity: activeCluster === null || activeCluster === clusterId ? 1 : 0.3,
+        // Use the appropriate cluster ID based on selected type
+        currentClusterId: clusterId
+      };
+    })
+    .filter(patient => patient.currentClusterId !== null); // Filter out unclustered patients
 
   // Prepare data grouped by cluster for Scatter components
   const groupedData: { [key: number]: any[] } = {};
   chartData.forEach(item => {
-    if (item.clusterId !== null) {
-        if (!groupedData[item.clusterId]) {
-            groupedData[item.clusterId] = [];
+    if (item.currentClusterId !== null) {
+        if (!groupedData[item.currentClusterId]) {
+            groupedData[item.currentClusterId] = [];
         }
-        groupedData[item.clusterId].push(item);
+        groupedData[item.currentClusterId].push(item);
     }
   });
 
@@ -143,9 +155,11 @@ const ClusterScatterPlot: React.FC<ClusterScatterPlotProps> = ({ data, onCluster
             <p className="flex items-center gap-1">
               <span 
                 className="inline-block w-3 h-3 rounded-full" 
-                style={{ backgroundColor: clusterColors[data.clusterId] || defaultColor }}
+                style={{ backgroundColor: clusterColors[data.currentClusterId] || defaultColor }}
               ></span>
-              <span className="font-medium text-gray-700">Cluster {data.clusterId}</span>
+              <span className="font-medium text-gray-700">
+                {clusterType === 'kmeans' ? 'K-Means' : 'DBSCAN'} Cluster {data.currentClusterId}
+              </span>
             </p>
           </div>
         </div>
@@ -251,11 +265,8 @@ const ClusterScatterPlot: React.FC<ClusterScatterPlotProps> = ({ data, onCluster
               name={`Cluster ${clusterId}`}
               data={groupedData[clusterId]}
               fill={clusterColors[clusterId] || defaultColor}
-              fillOpacity={isActive ? 0.8 : 0.3} // Reduce opacity for inactive clusters
-              shape="circle" 
-              legendType="circle"
-              strokeWidth={1}
-              stroke="#fff"
+              opacity={isActive ? 1 : 0.3}
+              style={{ transition: 'opacity 0.3s ease' }}
             />
           );
         })}

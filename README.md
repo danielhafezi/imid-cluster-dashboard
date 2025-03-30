@@ -7,9 +7,9 @@ This project is an interactive web-based visualization dashboard designed to dem
 ## Features
 
 - **Data Loading and Processing:** Loads synthetic patient, condition, medication, and encounter data from CSV files into a SQLite database.
-- **Patient Clustering:** Utilizes K-Means clustering based on patient age, condition count, and medication count.
+- **Dual Clustering Techniques:** Implements both K-Means and DBSCAN clustering algorithms based on patient age, condition count, and medication count. Users can easily switch between these methods to compare different clustering approaches.
 - **Interactive Visualization:** Displays patient clusters in an interactive scatter plot, allowing users to explore patient groups visually.
-- **AI Summaries:** Integrates Google Gemini API to generate descriptive summaries of patient clusters.
+- **AI Summaries:** Integrates Google Gemini API to generate descriptive summaries of patient clusters, tailored to the selected clustering method.
 
 ## Data Source
 
@@ -105,14 +105,16 @@ http://localhost:3000
 ## Usage
 
 - View patient clusters on the interactive scatter plot.
+- Toggle between K-Means and DBSCAN clustering methods using the buttons at the top of the dashboard.
 - Hover over points to see patient details.
 - Click on clusters to view AI-generated summaries describing cluster characteristics.
+- Summaries are dynamically generated based on the currently selected clustering method.
 
 ## Scripts
 
 - `npm run dev`: Starts the Next.js development server.
 - `npm run db:seed`: Seeds the SQLite database with synthetic data.
-- `npm run db:cluster`: Runs the clustering algorithm and updates patient cluster assignments.
+- `npm run db:cluster`: Runs the clustering algorithms (both K-Means and DBSCAN) and updates patient cluster assignments.
 
 ## Contributing
 

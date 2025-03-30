@@ -22,7 +22,8 @@ model Patient {
   conditions    Condition[]
   medications   Medication[]
   encounters    Encounter[]
-  clusterId     Int?
+  clusterId     Int?         // K-means cluster ID
+  dbscanClusterId Int?       // DBSCAN cluster ID
 }
 
 model Condition {

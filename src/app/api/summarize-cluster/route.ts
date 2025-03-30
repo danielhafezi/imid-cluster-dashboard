@@ -7,12 +7,19 @@ const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY || '');
 
 export async function POST(request: Request) {
     let clusterId: number;
+    let clusterType: string;
     try {
         const body = await request.json();
         if (typeof body.clusterId !== 'number') {
             return NextResponse.json({ error: 'Invalid clusterId provided. Must be a number.' }, { status: 400 });
         }
         clusterId = body.clusterId;
+        // Default to 'kmeans' if not specified
+        clusterType = body.clusterType || 'kmeans';
+        
+        if (clusterType !== 'kmeans' && clusterType !== 'dbscan') {
+            return NextResponse.json({ error: 'Invalid clusterType. Must be "kmeans" or "dbscan".' }, { status: 400 });
+        }
     } catch (error) {
         return NextResponse.json({ error: 'Invalid request body. Could not parse JSON.' }, { status: 400 });
     }
@@ -23,9 +30,14 @@ export async function POST(request: Request) {
     }
 
     try {
+        // Determine which field to query based on cluster type
+        const clusterField = clusterType === 'dbscan' ? 'dbscanClusterId' : 'clusterId';
+        
         // 1. Fetch patients in the cluster
         const patientsInCluster = await prisma.patient.findMany({
-            where: { clusterId: clusterId },
+            where: { 
+                [clusterField]: clusterId 
+            },
             select: {
                 id: true,
                 birthdate: true,
@@ -35,7 +47,9 @@ export async function POST(request: Request) {
         });
 
         if (patientsInCluster.length === 0) {
-            return NextResponse.json({ summary: `No patients found for Cluster ID ${clusterId}.` });
+            return NextResponse.json({ 
+                summary: `No patients found for ${clusterType.toUpperCase()} Cluster ID ${clusterId}.` 
+            });
         }
 
         // 2. Calculate aggregated data
@@ -75,6 +89,7 @@ export async function POST(request: Request) {
         const prompt = `
 Summarize the key characteristics of this patient cluster based on the following data. Focus on demographics, common conditions, and medication patterns. Keep the summary concise (2-3 sentences).
 
+Clustering Method: ${clusterType.toUpperCase()}
 Cluster ID: ${clusterId}
 Number of Patients: ${patientCount}
 Average Age: ${averageAge} years
@@ -95,7 +110,7 @@ Summary:
         return NextResponse.json({ summary });
 
     } catch (error) {
-        console.error(`Error processing cluster ${clusterId}:`, error);
+        console.error(`Error processing ${clusterType} cluster ${clusterId}:`, error);
         // Check if the error is from the Gemini API specifically
         if (error instanceof Error && error.message.includes('API key')) {
              return NextResponse.json({ error: 'Invalid API Key or API error.' }, { status: 500 });
