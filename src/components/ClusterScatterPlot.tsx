@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import {
   ScatterChart,
   Scatter,
@@ -12,14 +12,15 @@ import {
   ResponsiveContainer,
   ZAxis,
   Label,
+  TooltipProps,
 } from 'recharts';
 
-// Define a type for the patient data expected by the component
+// Define types for the patient data
 interface PatientData {
   id: string;
-  first: string;
-  last: string;
-  birthdate: string; // Assuming ISO string format
+  first: string | null;
+  last: string | null;
+  birthdate: string; // ISO string format
   clusterId: number | null;
   dbscanClusterId: number | null;
   _count: {
@@ -30,9 +31,33 @@ interface PatientData {
 
 interface ClusterScatterPlotProps {
   data: PatientData[];
-  onClusterSelect: (clusterId: number | null) => void; // Add callback prop
+  onClusterSelect: (clusterId: number | null) => void;
   clusterType: 'kmeans' | 'dbscan';
 }
+
+// Define a styled patient data for the scatter plot
+interface StyledPatientData extends PatientData {
+  age: number;
+  conditionsCount: number;
+  color: string;
+  opacity: number;
+  currentClusterId: number | null;
+}
+
+// Define colors for clusters with improved color scheme
+const CLUSTER_COLORS: Record<number, string> = {
+  0: '#4F46E5', // Indigo
+  1: '#10B981', // Emerald
+  2: '#F59E0B', // Amber
+  3: '#EF4444', // Red
+  4: '#0EA5E9', // Sky
+  5: '#8B5CF6', // Violet
+  6: '#EC4899', // Pink
+  7: '#F97316', // Orange
+  8: '#14B8A6', // Teal
+  9: '#6366F1', // Indigo
+};
+const DEFAULT_COLOR = '#94A3B8'; // Slate-400 for patients with null clusterId
 
 // Function to calculate age from birthdate string
 const calculateAge = (birthdateString: string): number => {
@@ -47,66 +72,54 @@ const calculateAge = (birthdateString: string): number => {
   return age;
 };
 
-// Define colors for clusters with improved color scheme
-const clusterColors: { [key: number]: string } = {
-  0: '#4F46E5', // Indigo
-  1: '#10B981', // Emerald
-  2: '#F59E0B', // Amber
-  3: '#EF4444', // Red
-  4: '#0EA5E9', // Sky
-  5: '#8B5CF6', // Violet
-  6: '#EC4899', // Pink
-  7: '#F97316', // Orange
-  8: '#14B8A6', // Teal
-  9: '#6366F1', // Indigo
+// Function to remove numbers from names
+const cleanName = (name: string | null | undefined): string => {
+  if (!name) return '';
+  return name.replace(/\d+/g, '');
 };
-const defaultColor = '#94A3B8'; // Slate-400 for patients with null clusterId
 
-const ClusterScatterPlot: React.FC<ClusterScatterPlotProps> = ({ data, onClusterSelect, clusterType }) => {
+const ClusterScatterPlot: React.FC<ClusterScatterPlotProps> = ({ 
+  data, 
+  onClusterSelect, 
+  clusterType 
+}) => {
   const [activeCluster, setActiveCluster] = useState<number | null>(null);
   
-  // Function to remove numbers from names
-  const cleanName = (name: string | undefined) => {
-    if (!name) return '';
-    return name.replace(/\d+/g, '');
-  };
-  
-  // Function to get cluster ID based on current cluster type
-  const getClusterId = (patient: PatientData): number | null => {
-    return clusterType === 'dbscan' ? patient.dbscanClusterId : patient.clusterId;
-  };
-  
-  // Transform data for the chart
-  const chartData = data
-    .map((patient) => {
-      const clusterId = getClusterId(patient);
-      return {
-        ...patient,
-        age: calculateAge(patient.birthdate),
-        conditionsCount: patient._count.conditions,
-        color: clusterId !== null ? clusterColors[clusterId] : defaultColor,
-        // Add opacity based on active cluster
-        opacity: activeCluster === null || activeCluster === clusterId ? 1 : 0.3,
-        // Use the appropriate cluster ID based on selected type
-        currentClusterId: clusterId
-      };
-    })
-    .filter(patient => patient.currentClusterId !== null); // Filter out unclustered patients
+  // Transform and prepare data for the chart
+  const chartData = useMemo(() => {
+    return data
+      .map((patient) => {
+        const clusterId = clusterType === 'dbscan' ? patient.dbscanClusterId : patient.clusterId;
+        return {
+          ...patient,
+          age: calculateAge(patient.birthdate),
+          conditionsCount: patient._count.conditions,
+          color: clusterId !== null ? CLUSTER_COLORS[clusterId] || DEFAULT_COLOR : DEFAULT_COLOR,
+          opacity: activeCluster === null || activeCluster === clusterId ? 1 : 0.3,
+          currentClusterId: clusterId
+        } as StyledPatientData;
+      })
+      .filter(patient => patient.currentClusterId !== null);
+  }, [data, activeCluster, clusterType]);
 
-  // Prepare data grouped by cluster for Scatter components
-  const groupedData: { [key: number]: any[] } = {};
-  chartData.forEach(item => {
-    if (item.currentClusterId !== null) {
-        if (!groupedData[item.currentClusterId]) {
-            groupedData[item.currentClusterId] = [];
+  // Group data by cluster for rendering
+  const groupedData = useMemo(() => {
+    const groups: Record<number, StyledPatientData[]> = {};
+    
+    chartData.forEach(item => {
+      if (item.currentClusterId !== null) {
+        if (!groups[item.currentClusterId]) {
+          groups[item.currentClusterId] = [];
         }
-        groupedData[item.currentClusterId].push(item);
-    }
-  });
+        groups[item.currentClusterId].push(item);
+      }
+    });
+    
+    return groups;
+  }, [chartData]);
 
   // Handle legend click
-  const handleLegendClick = (e: any) => {
-    // The payload in the legend click event contains the name, e.g., "Cluster 3"
+  const handleLegendClick = (e: { value: string }) => {
     const clusterName = e.value;
     if (clusterName && typeof clusterName === 'string' && clusterName.startsWith('Cluster ')) {
       const clusterIdStr = clusterName.replace('Cluster ', '');
@@ -132,12 +145,14 @@ const ClusterScatterPlot: React.FC<ClusterScatterPlotProps> = ({ data, onCluster
   };
 
   // Enhanced custom tooltip
-  const CustomTooltip = ({ active, payload }: any) => {
+  const CustomTooltip = ({ active, payload }: TooltipProps<number, string>) => {
     if (active && payload && payload.length) {
-      const data = payload[0].payload;
+      const data = payload[0].payload as StyledPatientData;
       return (
         <div className="p-3 bg-white border border-gray-200 rounded-md shadow-lg text-sm">
-          <p className="font-bold text-primary-700 border-b pb-1 mb-1">{`${cleanName(data.first)} ${cleanName(data.last)}`}</p>
+          <p className="font-bold text-primary-700 border-b pb-1 mb-1">
+            {`${cleanName(data.first)} ${cleanName(data.last)}`}
+          </p>
           <div className="grid grid-cols-2 gap-x-4 gap-y-1">
             <p className="text-gray-500">Patient ID:</p>
             <p className="font-medium text-gray-800">{data.id.substring(0, 8)}...</p>
@@ -155,7 +170,7 @@ const ClusterScatterPlot: React.FC<ClusterScatterPlotProps> = ({ data, onCluster
             <p className="flex items-center gap-1">
               <span 
                 className="inline-block w-3 h-3 rounded-full" 
-                style={{ backgroundColor: clusterColors[data.currentClusterId] || defaultColor }}
+                style={{ backgroundColor: CLUSTER_COLORS[data.currentClusterId as number] || DEFAULT_COLOR }}
               ></span>
               <span className="font-medium text-gray-700">
                 {clusterType === 'kmeans' ? 'K-Means' : 'DBSCAN'} Cluster {data.currentClusterId}
@@ -249,27 +264,25 @@ const ClusterScatterPlot: React.FC<ClusterScatterPlotProps> = ({ data, onCluster
             dx={-15}
           />
         </YAxis>
-        <ZAxis type="number" range={[60, 400]} /> {/* Controls dot size, optional */}
-        <Tooltip content={<CustomTooltip />} cursor={{ strokeDasharray: '3 3', stroke: '#9CA3AF' }} />
+        
+        <Tooltip content={<CustomTooltip />} />
+        
         <Legend 
-          content={renderLegend} 
-          verticalAlign="bottom" 
+          content={renderLegend}
           height={60}
+          verticalAlign="top"
         />
-        {Object.keys(groupedData).map((clusterIdStr) => {
-          const clusterId = parseInt(clusterIdStr, 10);
-          const isActive = activeCluster === null || activeCluster === clusterId;
-          return (
-            <Scatter
-              key={`cluster-${clusterId}`}
-              name={`Cluster ${clusterId}`}
-              data={groupedData[clusterId]}
-              fill={clusterColors[clusterId] || defaultColor}
-              opacity={isActive ? 1 : 0.3}
-              style={{ transition: 'opacity 0.3s ease' }}
-            />
-          );
-        })}
+        
+        {/* Render each cluster as a separate Scatter component */}
+        {Object.entries(groupedData).map(([clusterId, patients]) => (
+          <Scatter
+            key={clusterId}
+            name={`Cluster ${clusterId}`}
+            data={patients}
+            fill={CLUSTER_COLORS[parseInt(clusterId)] || DEFAULT_COLOR}
+            opacity={activeCluster === null || activeCluster === parseInt(clusterId) ? 1 : 0.3}
+          />
+        ))}
       </ScatterChart>
     </ResponsiveContainer>
   );

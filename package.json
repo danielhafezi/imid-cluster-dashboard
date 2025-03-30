@@ -7,8 +7,12 @@
     "build": "next build",
     "start": "next start",
     "lint": "next lint",
+    "db:init": "prisma migrate dev --name init",
     "db:seed": "python scripts/seed_database.py",
-    "db:cluster": "python scripts/cluster_patients.py"
+    "db:cluster": "python scripts/cluster_patients.py",
+    "db:reset": "rm -f prisma/dev.db && npm run db:init && npm run db:seed && npm run db:cluster",
+    "db:studio": "prisma studio",
+    "setup": "npm install && npm run db:init && npm run db:seed && npm run db:cluster"
   },
   "dependencies": {
     "@google/generative-ai": "^0.24.0",
