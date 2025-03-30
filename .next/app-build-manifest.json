@@ -16,6 +16,11 @@
       "static/chunks/main-app.js",
       "static/chunks/app/not-found.js"
     ],
+    "/patients/dashboard/page": [
+      "static/chunks/webpack.js",
+      "static/chunks/main-app.js",
+      "static/chunks/app/patients/dashboard/page.js"
+    ],
     "/patients/page": [
       "static/chunks/webpack.js",
       "static/chunks/main-app.js",
@@ -26,10 +31,15 @@
       "static/chunks/main-app.js",
       "static/chunks/app/patients/[id]/page.js"
     ],
-    "/patients/dashboard/page": [
+    "/conditions/page": [
       "static/chunks/webpack.js",
       "static/chunks/main-app.js",
-      "static/chunks/app/patients/dashboard/page.js"
+      "static/chunks/app/conditions/page.js"
+    ],
+    "/medications/page": [
+      "static/chunks/webpack.js",
+      "static/chunks/main-app.js",
+      "static/chunks/app/medications/page.js"
     ]
   }
 }
