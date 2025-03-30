@@ -1,2 +1,27 @@
-node_modules
+# Node.js / Next.js
+node_modules/
+.next/
+npm-debug.log*
+yarn-error.log*
+*.log
+
+# Environment variables
 .env
+.env*.local
+
+# Prisma / SQLite
+prisma/dev.db
+prisma/dev.db-journal
+# Optionally ignore migration SQL files:
+# prisma/migrations/*/*.sql
+
+# Python
+__pycache__/
+*.pyc
+venv/
+.venv/
+
+# OS / Editor specific
+.DS_Store
+Thumbs.db
+# .vscode/ # Uncomment if you don't want to commit VS Code settings
