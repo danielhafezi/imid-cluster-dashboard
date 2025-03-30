@@ -1,8 +1,10 @@
 {
-  "/page": "app/page.js",
+  "/patients/[id]/page": "app/patients/[id]/page.js",
   "/patients/dashboard/page": "app/patients/dashboard/page.js",
-  "/api/patients/route": "app/api/patients/route.js",
-  "/patients/page": "app/patients/page.js",
   "/api/summarize-cluster/route": "app/api/summarize-cluster/route.js",
-  "/patients/[id]/page": "app/patients/[id]/page.js"
+  "/patients/page": "app/patients/page.js",
+  "/api/patients/route": "app/api/patients/route.js",
+  "/page": "app/page.js",
+  "/medications/page": "app/medications/page.js",
+  "/conditions/page": "app/conditions/page.js"
 }
